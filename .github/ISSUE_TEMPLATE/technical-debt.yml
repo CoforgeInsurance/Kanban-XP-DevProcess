@@ -1,0 +1,100 @@
+name: Technical Debt
+description: Address technical debt, refactoring, or code quality improvements
+labels: ["technical-debt", "needs-triage"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🔧 Technical Debt Template
+        Use this for refactoring, code quality improvements, or addressing technical debt.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What needs to be improved and why?
+      placeholder: Describe the technical debt or improvement needed
+    validations:
+      required: true
+
+  - type: textarea
+    id: current-state
+    attributes:
+      label: Current State
+      description: What's the current implementation?
+      placeholder: |
+        - Current approach: Monolithic function with 500+ lines
+        - Issues: Hard to test, tightly coupled, duplicated logic
+        - Files: src/legacy/processor.ts
+    validations:
+      required: true
+
+  - type: textarea
+    id: desired-state
+    attributes:
+      label: Desired State
+      description: What should it look like after refactoring?
+      placeholder: |
+        - Split into smaller, single-responsibility functions
+        - Improve testability with dependency injection
+        - Extract common logic to utilities
+        - Target: < 100 lines per function
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: How do we know it's done?
+      placeholder: |
+        - [ ] Code split into modules
+        - [ ] Test coverage > 80%
+        - [ ] No functionality regression
+        - [ ] Documentation updated
+      value: |
+        - [ ] 
+        - [ ] 
+        - [ ] 
+    validations:
+      required: true
+
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Impact
+      description: How important is this improvement?
+      options:
+        - High (blocking new features)
+        - Medium (impacts productivity)
+        - Low (nice to have)
+    validations:
+      required: true
+
+  - type: input
+    id: affected-files
+    attributes:
+      label: Affected Files
+      description: Which files need to be refactored?
+      placeholder: "src/legacy/processor.ts, src/utils/helper.ts"
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: definition-of-done
+    attributes:
+      label: Definition of Done
+      options:
+        - label: Refactoring plan documented
+          required: false
+        - label: Tests maintain existing coverage
+          required: false
+        - label: No regression in functionality
+          required: false
+        - label: Code complexity reduced
+          required: false
+        - label: Code reviewed
+          required: false
+        - label: Documentation updated
+          required: false

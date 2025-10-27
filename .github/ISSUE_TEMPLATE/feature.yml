@@ -1,0 +1,132 @@
+name: Feature Request
+description: Create a new feature with BDD scenarios (optimized for GitHub Copilot)
+labels: ["feature", "needs-triage"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🚀 Feature Request Template
+        This template is optimized for GitHub Copilot SWE agent. Be specific and include acceptance criteria in Gherkin format.
+
+  - type: textarea
+    id: user-story
+    attributes:
+      label: User Story
+      description: Describe the feature from the user's perspective
+      placeholder: |
+        As a [role]
+        I want [capability]
+        So that [benefit]
+      value: |
+        As a 
+        I want 
+        So that 
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria (BDD Scenarios)
+      description: Define scenarios in Gherkin format (Given/When/Then)
+      placeholder: |
+        Scenario: [Description]
+          Given [context/precondition]
+          When [action/event]
+          Then [expected outcome]
+          
+        Scenario: [Another scenario]
+          Given [context]
+          When [action]
+          Then [outcome]
+      value: |
+        Scenario: 
+          Given 
+          When 
+          Then 
+    validations:
+      required: true
+
+  - type: textarea
+    id: technical-notes
+    attributes:
+      label: Technical Implementation Hints
+      description: Help Copilot understand the technical context (file paths, related code, frameworks)
+      placeholder: |
+        - Files to modify: src/components/MyComponent.tsx
+        - Related functions: handleSubmit(), validateForm()
+        - Test framework: Jest + React Testing Library
+        - API endpoints: POST /api/users
+      value: |
+        - Files to modify: 
+        - Related code: 
+        - Test framework: 
+        - Dependencies: 
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: definition-of-done
+    attributes:
+      label: Definition of Done
+      description: Check these off as you complete the work
+      options:
+        - label: BDD scenarios written as failing tests
+          required: false
+        - label: Unit tests written (TDD - Red phase)
+          required: false
+        - label: Implementation complete (Green phase)
+          required: false
+        - label: Code refactored and cleaned (Refactor phase)
+          required: false
+        - label: All tests passing
+          required: false
+        - label: Code reviewed and approved
+          required: false
+        - label: Documentation updated
+          required: false
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: Business priority of this feature
+      options:
+        - High
+        - Medium
+        - Low
+    validations:
+      required: true
+
+  - type: dropdown
+    id: size
+    attributes:
+      label: Size Estimate
+      description: Relative size (prefer XS/S for quick delivery)
+      options:
+        - XS (< 2 hours)
+        - S (2-4 hours)
+        - M (4-8 hours)
+        - L (1-2 days)
+        - XL (> 2 days, consider splitting)
+    validations:
+      required: false
+
+  - type: input
+    id: dependencies
+    attributes:
+      label: Dependencies
+      description: Link to blocking issues (e.g., #123, #456)
+      placeholder: "#123, #456"
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: copilot-ready
+    attributes:
+      label: Ready for Copilot SWE Agent?
+      description: Check if this issue is well-defined enough for automated development
+      options:
+        - label: This issue has clear acceptance criteria and can be assigned to @github-copilot
+          required: false
