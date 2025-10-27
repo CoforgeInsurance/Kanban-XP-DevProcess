@@ -1,0 +1,29 @@
+# CODEOWNERS file
+# 
+# This file defines who owns which parts of the codebase.
+# Code owners are automatically requested for review when someone opens a PR that modifies code they own.
+#
+# Syntax: path/to/file @github-username @github-org/team-name
+#
+# Learn more: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owners for everything in the repo
+# Replace with actual team/usernames
+* @CoforgeInsurance/dev-team
+
+# Workflow and CI/CD configuration
+/.github/ @CoforgeInsurance/devops-team
+
+# Documentation
+*.md @CoforgeInsurance/tech-writers @CoforgeInsurance/dev-team
+
+# Process documentation - requires lead approval
+/DEVELOPMENT_PROCESS.md @CoforgeInsurance/engineering-leads
+/CONTRIBUTING.md @CoforgeInsurance/engineering-leads
+
+# Example ownership patterns (uncomment and customize as needed):
+# /src/frontend/ @CoforgeInsurance/frontend-team
+# /src/backend/ @CoforgeInsurance/backend-team
+# /src/api/ @CoforgeInsurance/api-team
+# /tests/ @CoforgeInsurance/qa-team
+# /docs/ @CoforgeInsurance/tech-writers

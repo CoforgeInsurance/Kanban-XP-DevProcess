@@ -1,0 +1,106 @@
+name: Issue Automation
+
+# Automatically manage issues based on activity and labels
+on:
+  issues:
+    types: [opened, edited, labeled, unlabeled]
+
+jobs:
+  auto-label:
+    name: Auto-label Issues
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    
+    steps:
+      - name: Label feature requests
+        if: contains(github.event.issue.body, 'As a') && contains(github.event.issue.body, 'I want')
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: ['feature']
+            });
+
+      - name: Label bugs
+        if: contains(github.event.issue.body, 'Bug Description') || contains(github.event.issue.body, 'Steps to Reproduce')
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: ['bug']
+            });
+
+  check-acceptance-criteria:
+    name: Check for Acceptance Criteria
+    runs-on: ubuntu-latest
+    if: github.event.action == 'opened'
+    permissions:
+      issues: write
+    
+    steps:
+      - name: Verify acceptance criteria
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.issue.body || '';
+            const hasGiven = body.toLowerCase().includes('given');
+            const hasWhen = body.toLowerCase().includes('when');
+            const hasThen = body.toLowerCase().includes('then');
+            
+            if (!hasGiven || !hasWhen || !hasThen) {
+              github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: '⚠️ **Missing Acceptance Criteria**\n\n' +
+                      'This issue appears to be missing BDD acceptance criteria in Gherkin format.\n\n' +
+                      'Please add scenarios with:\n' +
+                      '- **Given** (context/precondition)\n' +
+                      '- **When** (action/event)\n' +
+                      '- **Then** (expected outcome)\n\n' +
+                      'This helps ensure clarity and enables GitHub Copilot to better assist with implementation.'
+              });
+              
+              github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                labels: ['needs-refinement']
+              });
+            }
+
+  copilot-assignment-helper:
+    name: Copilot Assignment Helper
+    runs-on: ubuntu-latest
+    if: github.event.action == 'labeled' && github.event.label.name == 'copilot-ready'
+    permissions:
+      issues: write
+    
+    steps:
+      - name: Add Copilot assignment instructions
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: '🤖 **Ready for GitHub Copilot**\n\n' +
+                    'This issue has been marked as ready for automated development.\n\n' +
+                    '**To assign to Copilot:**\n' +
+                    '1. Ensure all acceptance criteria are clear\n' +
+                    '2. Verify technical implementation hints are provided\n' +
+                    '3. Use the repository settings to assign to @github-copilot\n\n' +
+                    '**Expected outcome:**\n' +
+                    '- Copilot will create a pull request with implementation\n' +
+                    '- Tests will be written first (TDD)\n' +
+                    '- Code will be reviewed by humans before merging\n\n' +
+                    '[Learn more about Copilot](https://docs.github.com/en/copilot)'
+            });
