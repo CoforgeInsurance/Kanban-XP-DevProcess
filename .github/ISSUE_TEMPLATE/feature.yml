@@ -54,14 +54,17 @@ body:
       label: Technical Implementation Hints
       description: Help Copilot understand the technical context (file paths, related code, frameworks)
       placeholder: |
-        - Files to modify: src/components/MyComponent.tsx
-        - Related functions: handleSubmit(), validateForm()
-        - Test framework: Jest + React Testing Library
-        - API endpoints: POST /api/users
+        - Files to create/modify: src/AncientWisdom.API/Controllers/QuotesController.cs
+        - Related code: src/AncientWisdom.Domain/Entities/Quote.cs
+        - Test framework: xUnit + FluentAssertions + SpecFlow
+        - Database: Entity Framework Core 8.0 with SQL Server
+        - API: ASP.NET Core 8.0 Minimal API or Controllers
+        - Dependencies: AutoMapper, Serilog, FluentValidation
       value: |
-        - Files to modify: 
+        - Files to create/modify: 
         - Related code: 
-        - Test framework: 
+        - Test framework: xUnit + SpecFlow
+        - Database: EF Core 8.0
         - Dependencies: 
     validations:
       required: false

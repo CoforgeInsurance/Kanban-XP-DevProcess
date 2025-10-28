@@ -1,18 +1,36 @@
-# Kanban-XP-DevProcess 🚀# Kanban-XP-DevProcess
+# Kanban-XP-DevProcess 🚀
 
 Kanban + XP + Lean development process template with GitHub Copilot SWE agent optimization for BDD/TDD workflows
 
-A production-ready template implementing **Kanban + XP + Lean** methodologies with **BDD/TDD** workflows, optimized for **GitHub Copilot** and GitHub's native tooling.
+**PLUS**: Reference implementation - **Ancient Wisdom API** (C# .NET 8.0)
 
 ## 🎯 What is This?
 
-This repository provides a complete development process framework that combines:
+This repository serves **two purposes**:
 
+### 1️⃣ **Process Template**
+A production-ready template implementing **Kanban + XP + Lean** methodologies with **BDD/TDD** workflows, optimized for **GitHub Copilot SWE Agent** and GitHub's native tooling.
+
+**Includes**:
 - **Kanban** for flow-based work management
 - **XP (Extreme Programming)** for technical excellence
 - **Lean** for waste elimination
 - **BDD/TDD** for quality-first development
 - **GitHub Copilot** optimization for AI-assisted development
+- **9 automated workflows** for maximum efficiency
+
+### 2️⃣ **Reference Implementation**
+**Ancient Wisdom API** - A real-world C# .NET 8.0 application demonstrating the agent-first development process in action.
+
+**Features**:
+- RESTful API providing curated wisdom from 7 philosophical traditions
+- Clean Architecture (Domain/Application/Infrastructure/API layers)
+- Entity Framework Core 8.0 + SQL Server
+- Comprehensive BDD/TDD test suite (xUnit + SpecFlow)
+- Built incrementally using GitHub Copilot SWE Agent
+- Each feature tracked as copilot-ready issues
+
+📖 **[View Architecture](./ARCHITECTURE.md)** | **[View API Spec](./API_SPECIFICATION.md)**
 
 Perfect for teams who want to move fast while maintaining high quality.
 
