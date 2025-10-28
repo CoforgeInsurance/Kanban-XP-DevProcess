@@ -26,14 +26,21 @@ Perfect for teams who want to move fast while maintaining high quality.
 All templates optimized for GitHub Copilot SWE agent assignment!
 
 ### 🤖 Automated Workflows
-- **CI/CD Pipeline**: Automated testing on every push
-- **Issue Automation**: Auto-labeling, acceptance criteria checking
-- **PR Automation**: Size analysis, test coverage verification
-- **Copilot Integration**: Automatic review reminders
+- **9 GitHub Actions workflows** for complete automation
+- **Agent PR Metrics**: Track Copilot success rate and cycle time
+- **Auto-Approval**: Fast-track high-quality agent PRs
+- **Weekly Reports**: Automated performance insights
+- **Stale Cleanup**: Auto-archive inactive issues/PRs
+- **Dependabot Auto-Merge**: Automatic safe dependency updates
+- **CI/CD Pipeline**: Quality gates on every change
+- **Issue/PR Automation**: Smart labeling and validation
+
+📄 **[View Complete Workflow Documentation](./.github/WORKFLOWS.md)**
 
 ### 📖 Comprehensive Documentation
 - [Development Process Guide](./DEVELOPMENT_PROCESS.md): Complete methodology
 - [Agent-First Process](./AGENT_FIRST_PROCESS.md): ⭐ **Maximize GitHub Copilot SWE Agent**
+- [Workflow Automation Guide](./.github/WORKFLOWS.md): 🤖 **9 Automated Workflows**
 - [Contributing Guide](./CONTRIBUTING.md): How to work with this process
 - Pull Request Template: Ensures quality submissions
 

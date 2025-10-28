@@ -1,0 +1,168 @@
+name: Auto-Approve Agent PRs
+
+# Automatically approve agent PRs that meet quality criteria
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  auto-approve:
+    name: Auto-Approve Quality Agent PRs
+    runs-on: ubuntu-latest
+    # Only for copilot-generated PRs
+    if: github.event.pull_request.user.login == 'copilot' || contains(github.event.pull_request.head.ref, 'copilot/')
+    permissions:
+      pull-requests: write
+      checks: read
+      contents: read
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Get full history for comparison
+
+      - name: Wait for CI checks
+        uses: actions/github-script@v7
+        id: check-ci
+        with:
+          script: |
+            // Wait up to 5 minutes for CI to complete
+            const maxWait = 5 * 60 * 1000; // 5 minutes
+            const startTime = Date.now();
+            
+            while (Date.now() - startTime < maxWait) {
+              const { data: checks } = await github.rest.checks.listForRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: context.payload.pull_request.head.sha,
+              });
+              
+              const allChecks = checks.check_runs;
+              const completed = allChecks.every(check => check.status === 'completed');
+              const allPassed = allChecks.every(check => 
+                check.conclusion === 'success' || check.conclusion === 'neutral'
+              );
+              
+              if (completed) {
+                core.setOutput('ci_passed', allPassed);
+                core.setOutput('check_count', allChecks.length);
+                return allPassed;
+              }
+              
+              // Wait 10 seconds before checking again
+              await new Promise(resolve => setTimeout(resolve, 10000));
+            }
+            
+            // Timeout
+            core.setOutput('ci_passed', false);
+            core.setOutput('check_count', 0);
+            return false;
+
+      - name: Check PR quality criteria
+        id: quality-check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            
+            // Quality criteria
+            const criteria = {
+              hasLinkedIssue: /(?:close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\s+#\d+/i.test(pr.body || ''),
+              reasonableSize: pr.changed_files <= 20 && (pr.additions + pr.deletions) <= 1000,
+              hasDescription: (pr.body || '').length > 100,
+              notDraft: !pr.draft,
+            };
+            
+            // Check for test files
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number,
+            });
+            
+            criteria.hasTests = files.some(f => 
+              f.filename.includes('test') || 
+              f.filename.includes('spec') ||
+              f.filename.includes('.test.') ||
+              f.filename.includes('.spec.')
+            );
+            
+            const passedCriteria = Object.values(criteria).filter(v => v).length;
+            const totalCriteria = Object.keys(criteria).length;
+            
+            core.setOutput('passed_criteria', passedCriteria);
+            core.setOutput('total_criteria', totalCriteria);
+            core.setOutput('all_passed', passedCriteria === totalCriteria);
+            
+            // Store criteria for comment
+            return criteria;
+
+      - name: Auto-approve if quality met
+        if: steps.check-ci.outputs.ci_passed == 'true' && steps.quality-check.outputs.all_passed == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.pulls.createReview({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              event: 'APPROVE',
+              body: '✅ **Auto-Approved by Quality Bot**\n\n' +
+                    '**Quality Criteria Met**:\n' +
+                    '- ✅ All CI checks passed\n' +
+                    '- ✅ Linked to issue (closes/fixes)\n' +
+                    '- ✅ Reasonable size (≤20 files, ≤1000 lines)\n' +
+                    '- ✅ Has description (>100 chars)\n' +
+                    '- ✅ Includes test files\n' +
+                    '- ✅ Not marked as draft\n\n' +
+                    '🔍 **Human review still recommended** for:\n' +
+                    '- Architecture decisions\n' +
+                    '- Business logic validation\n' +
+                    '- Edge case handling\n\n' +
+                    '_This PR is ready to merge after human review._'
+            });
+            
+            // Add ready-to-merge label
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: ['auto-approved', 'ready-to-merge']
+            });
+
+      - name: Comment on quality failures
+        if: steps.check-ci.outputs.ci_passed != 'true' || steps.quality-check.outputs.all_passed != 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const ciPassed = '${{ steps.check-ci.outputs.ci_passed }}' === 'true';
+            const criteria = ${{ steps.quality-check.outputs.all_passed }};
+            
+            let message = '⚠️ **Auto-Approval Criteria Not Met**\n\n';
+            
+            if (!ciPassed) {
+              message += '❌ **CI Checks**: Some checks failed or are still running\n';
+            } else {
+              message += '✅ **CI Checks**: All passed\n';
+            }
+            
+            message += '\n**Quality Criteria**:\n';
+            message += `- Passed: ${{ steps.quality-check.outputs.passed_criteria }}/${{ steps.quality-check.outputs.total_criteria }}\n\n`;
+            
+            message += '**Required for auto-approval**:\n';
+            message += '- Linked to issue (use "closes #123")\n';
+            message += '- Reasonable size (≤20 files, ≤1000 lines)\n';
+            message += '- Has description (>100 chars)\n';
+            message += '- Includes test files\n';
+            message += '- Not marked as draft\n';
+            message += '- All CI checks pass\n\n';
+            
+            message += '💡 **Tip**: This PR needs human review before merging.';
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: message
+            });

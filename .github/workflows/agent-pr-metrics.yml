@@ -1,0 +1,115 @@
+name: Agent PR Metrics
+
+# Track GitHub Copilot SWE Agent performance
+on:
+  pull_request:
+    types: [opened, closed]
+  
+jobs:
+  track-agent-metrics:
+    name: Track Agent PR Metrics
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.user.login == 'copilot' || contains(github.event.pull_request.head.ref, 'copilot/')
+    permissions:
+      pull-requests: write
+      issues: write
+    
+    steps:
+      - name: Record agent PR opened
+        if: github.event.action == 'opened'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const linkedIssues = pr.body?.match(/#(\d+)/g) || [];
+            
+            // Add metrics label
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              labels: ['copilot-generated']
+            });
+            
+            // Comment with initial metrics
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              body: `🤖 **Agent PR Metrics**\n\n` +
+                    `📊 **Initial Stats**:\n` +
+                    `- Files changed: ${pr.changed_files}\n` +
+                    `- Additions: +${pr.additions}\n` +
+                    `- Deletions: -${pr.deletions}\n` +
+                    `- Linked issues: ${linkedIssues.join(', ') || 'None'}\n\n` +
+                    `⏱️ **Tracking**: PR opened at ${new Date().toISOString()}\n\n` +
+                    `_Will update with review metrics when closed._`
+            });
+
+      - name: Calculate agent success metrics
+        if: github.event.action == 'closed' && github.event.pull_request.merged == true
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const created = new Date(pr.created_at);
+            const merged = new Date(pr.merged_at);
+            const cycleTime = Math.round((merged - created) / (1000 * 60 * 60)); // hours
+            
+            // Get review comments count
+            const { data: reviews } = await github.rest.pulls.listReviews({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number
+            });
+            
+            const { data: comments } = await github.rest.pulls.listReviewComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number
+            });
+            
+            // Post success metrics
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              body: `✅ **Agent PR Success Metrics**\n\n` +
+                    `⏱️ **Cycle Time**: ${cycleTime} hours\n` +
+                    `👥 **Reviews**: ${reviews.length}\n` +
+                    `💬 **Review Comments**: ${comments.length}\n` +
+                    `📝 **Changes**: ${pr.changed_files} files, +${pr.additions}/-${pr.deletions} lines\n\n` +
+                    `🎯 **Status**: MERGED ✅\n\n` +
+                    `_Track these metrics to improve agent issue quality!_`
+            });
+
+      - name: Record agent PR closed without merge
+        if: github.event.action == 'closed' && github.event.pull_request.merged == false
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            
+            // Add failure label for tracking
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              labels: ['agent-rejected']
+            });
+            
+            // Post failure notice
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              body: `❌ **Agent PR Not Merged**\n\n` +
+                    `This agent-generated PR was closed without merging.\n\n` +
+                    `**Common reasons**:\n` +
+                    `- Issue requirements unclear\n` +
+                    `- Missing technical constraints\n` +
+                    `- Incomplete BDD scenarios\n` +
+                    `- Architecture misalignment\n\n` +
+                    `💡 **Tip**: Review the linked issue and improve specificity before reassigning to agent.\n\n` +
+                    `See AGENT_FIRST_PROCESS.md for issue quality checklist.`
+            });

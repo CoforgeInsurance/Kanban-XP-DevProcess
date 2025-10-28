@@ -1,0 +1,180 @@
+name: Weekly Metrics Report
+
+# Generate weekly development metrics
+on:
+  schedule:
+    # Run every Monday at 9 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  generate-metrics:
+    name: Generate Weekly Report
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: read
+      contents: read
+    
+    steps:
+      - name: Calculate weekly metrics
+        id: metrics
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+            
+            // Get PRs from last week
+            const { data: allPRs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'all',
+              per_page: 100,
+              sort: 'created',
+              direction: 'desc'
+            });
+            
+            const weekPRs = allPRs.filter(pr => new Date(pr.created_at) >= oneWeekAgo);
+            const agentPRs = weekPRs.filter(pr => 
+              pr.user.login === 'copilot' || pr.head.ref.startsWith('copilot/')
+            );
+            const humanPRs = weekPRs.filter(pr => 
+              pr.user.login !== 'copilot' && !pr.head.ref.startsWith('copilot/')
+            );
+            
+            // Calculate agent success rate
+            const agentMerged = agentPRs.filter(pr => pr.merged_at).length;
+            const agentSuccessRate = agentPRs.length > 0 
+              ? Math.round((agentMerged / agentPRs.length) * 100) 
+              : 0;
+            
+            // Calculate cycle times
+            const calculateCycleTime = (prs) => {
+              const times = prs
+                .filter(pr => pr.merged_at)
+                .map(pr => {
+                  const created = new Date(pr.created_at);
+                  const merged = new Date(pr.merged_at);
+                  return (merged - created) / (1000 * 60 * 60); // hours
+                });
+              
+              if (times.length === 0) return 0;
+              return Math.round(times.reduce((a, b) => a + b, 0) / times.length);
+            };
+            
+            const agentCycleTime = calculateCycleTime(agentPRs);
+            const humanCycleTime = calculateCycleTime(humanPRs);
+            
+            // Get issues created
+            const { data: allIssues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'all',
+              since: oneWeekAgo.toISOString(),
+              per_page: 100
+            });
+            
+            const weekIssues = allIssues.filter(issue => 
+              !issue.pull_request && new Date(issue.created_at) >= oneWeekAgo
+            );
+            
+            const copilotReadyIssues = weekIssues.filter(issue =>
+              issue.labels.some(label => label.name === 'copilot-ready')
+            );
+            
+            const closedIssues = weekIssues.filter(issue => issue.state === 'closed');
+            
+            // Store metrics
+            core.setOutput('total_prs', weekPRs.length);
+            core.setOutput('agent_prs', agentPRs.length);
+            core.setOutput('human_prs', humanPRs.length);
+            core.setOutput('agent_merged', agentMerged);
+            core.setOutput('agent_success_rate', agentSuccessRate);
+            core.setOutput('agent_cycle_time', agentCycleTime);
+            core.setOutput('human_cycle_time', humanCycleTime);
+            core.setOutput('total_issues', weekIssues.length);
+            core.setOutput('copilot_ready_issues', copilotReadyIssues.length);
+            core.setOutput('closed_issues', closedIssues.length);
+            
+            return {
+              weekPRs: weekPRs.length,
+              agentPRs: agentPRs.length,
+              humanPRs: humanPRs.length,
+              agentMerged,
+              agentSuccessRate,
+              agentCycleTime,
+              humanCycleTime,
+              weekIssues: weekIssues.length,
+              copilotReadyIssues: copilotReadyIssues.length,
+              closedIssues: closedIssues.length
+            };
+
+      - name: Post weekly metrics report
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const metrics = ${{ steps.metrics.outputs.result }};
+            
+            const weekDate = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+            
+            // Create report
+            const report = [
+              '## 📊 Weekly Development Metrics Report',
+              '',
+              '**Week of**: ' + weekDate,
+              '',
+              '### 🤖 GitHub Copilot Agent Performance',
+              '',
+              '| Metric | Value | Target |',
+              '|--------|-------|--------|',
+              `| **Agent PRs Created** | ${metrics.agentPRs} | - |`,
+              `| **Agent PRs Merged** | ${metrics.agentMerged} | - |`,
+              `| **Success Rate** | ${metrics.agentSuccessRate}% | >80% |`,
+              `| **Avg Cycle Time** | ${metrics.agentCycleTime}h | <24h |`,
+              '',
+              metrics.agentSuccessRate >= 80 ? '✅ Agent success rate meets target!' : '⚠️ Agent success rate below target - review issue quality',
+              metrics.agentCycleTime <= 24 ? '✅ Cycle time meets target!' : '⚠️ Cycle time above target - check CI/CD performance',
+              '',
+              '### 👥 Human Developer Performance',
+              '',
+              '| Metric | Value |',
+              '|--------|-------|',
+              `| **Human PRs Created** | ${metrics.humanPRs} |`,
+              `| **Avg Cycle Time** | ${metrics.humanCycleTime}h |`,
+              '',
+              '### 📝 Issue Tracking',
+              '',
+              '| Metric | Value |',
+              '|--------|-------|',
+              `| **New Issues** | ${metrics.weekIssues} |`,
+              `| **Copilot-Ready Issues** | ${metrics.copilotReadyIssues} |`,
+              `| **Closed Issues** | ${metrics.closedIssues} |`,
+              `| **Total PRs** | ${metrics.weekPRs} |`,
+              '',
+              '### 💡 Insights',
+              '',
+              metrics.agentPRs > 0 ? `**Agent Utilization**: ${Math.round((metrics.agentPRs / metrics.weekPRs) * 100)}% of PRs are agent-generated` : '⚠️ No agent PRs this week - consider using Copilot more!',
+              '',
+              metrics.copilotReadyIssues > 0 ? `**Issue Quality**: ${metrics.copilotReadyIssues} issues marked copilot-ready` : '💡 Tip: Label issues as "copilot-ready" to leverage agent automation',
+              '',
+              '### 📋 Action Items',
+              '',
+              metrics.agentSuccessRate < 80 ? '- ⚠️ **Improve issue quality**: Review AGENT_FIRST_PROCESS.md for better specifications' : '',
+              metrics.copilotReadyIssues === 0 ? '- 💡 **Create agent-ready issues**: Use enhanced templates with detailed BDD scenarios' : '',
+              metrics.agentCycleTime > 24 ? '- 🔧 **Optimize CI/CD**: Review pipeline performance' : '',
+              metrics.agentPRs === 0 ? '- 🤖 **Increase agent usage**: Assign more issues to @github-copilot' : '',
+              '- 📖 Review [AGENT_FIRST_PROCESS.md](./AGENT_FIRST_PROCESS.md) for optimization tips',
+              '',
+              '_Generated automatically every Monday. See [metrics workflow](.github/workflows/weekly-metrics.yml)_'
+            ].filter(line => line !== '').join('\n');
+
+            // Create issue with report
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `📊 Weekly Metrics: ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
+              body: report,
+              labels: ['metrics', 'documentation']
+            });
+            
+            console.log('Weekly metrics report created!');
