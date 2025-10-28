@@ -33,21 +33,97 @@ The following have been configured automatically:
 - **Done** - Merged and verified
 
 **Add Custom Fields**:
-1. Click **⋮** menu → **Settings** → **Custom fields**
-2. Add these fields:
+1. Click **⋮** menu (top right) → **Settings**
+2. In left sidebar, click **Custom fields**
+3. Click **+ New field** and add these three fields:
 
-| Field Name | Type | Values |
-|------------|------|--------|
+| Field Name | Type | Options to Add |
+|------------|------|----------------|
 | Priority | Single select | High, Medium, Low |
 | Size | Single select | XS (< 2h), S (2-4h), M (4-8h), L (1-2d), XL (> 2d) |
 | Feature Area | Single select | Frontend, Backend, DevOps, Documentation, Testing |
 
-**Configure Automation** (optional):
-1. In project settings → **Workflows**
-2. Enable:
-   - Auto-add items when they match filters
-   - Auto-move to Review when PR created
-   - Auto-move to Done when PR merged
+4. Click **Save** for each field
+
+**Configure Project Workflows** (Recommended - 10 minutes):
+
+This is where you maximize automation! Navigate to **⚙️ Workflows** in your project.
+
+**✅ Essential Workflows to Enable:**
+
+1. **Auto-add to project** ⭐ (Critical)
+   - Click workflow → **Edit**
+   - **Filter**: `is:open` (adds all open issues and PRs)
+   - Click **Save and turn on workflow**
+   - **Why**: Automatically adds new issues/PRs to your board
+   - **Note**: Status is set by "Item added to project" workflow (below)
+
+2. **Auto-add sub-issues to project** ✅ (Keep enabled - has green dot)
+   - **Why**: Automatically adds sub-tasks when you break down large issues
+   - **Already enabled by default** - no action needed!
+
+3. **Item added to project** ✅ (Keep enabled - has green dot)
+   - Should show: **Set value: Status → Backlog**
+   - **Why**: Sets initial status for all new items
+   - **Already configured** - verify it's enabled!
+
+4. **Auto-close issue** ✅ (Keep enabled - has green dot)
+   - **Why**: Auto-closes issues when linked PR merges
+   - **Already enabled by default**
+
+5. **Pull request merged** ✅ (Keep enabled - has green dot)
+   - Click workflow → **Edit** → Verify: **Status → Done**
+   - **Why**: Moves items to Done when PR merges
+   - **Already enabled** - just verify status setting
+
+6. **Item closed** ✅ (Keep enabled - has green dot)
+   - **Why**: Handles manually closed items
+   - **Already enabled by default**
+
+7. **Item reopened** 🔄 (Enable this)
+   - Click workflow → **Edit**
+   - **Set value**: Status → **Backlog**
+   - Click **Save and turn on workflow**
+   - **Why**: Returns reopened items back to workflow
+
+8. **Code changes requested** 🔄 (Optional but recommended)
+   - Click workflow → **Edit**
+   - **Filter**: `is:pr`
+   - **Set value**: Status → **In Progress**
+   - Click **Save and turn on workflow**
+   - **Why**: Moves PR back when reviewer requests changes
+
+9. **Auto-archive items** 🗄️ (Optional - for clean board)
+   - Click workflow → **Edit**
+   - **When**: Status changes to **Done**
+   - **Archive after**: **2 weeks** (recommended) or 1 week
+   - Click **Save and turn on workflow**
+   - **Why**: Keeps board focused on active work
+   - **Note**: Don't use 4 weeks - too long!
+
+**⭕ Optional - Can Skip:**
+
+10. **Code review approved** (Not needed - redundant)
+    - **Skip this** - "Pull request merged" already handles completion
+    - Leave disabled to avoid confusion
+
+**Expected Workflow Automation:**
+
+```
+New Issue/PR Created
+    ↓ (Auto-add to project)
+Added to Board → Status: Backlog (Item added to project)
+    ↓ [Manual] Move to Ready
+    ↓ [Manual] Move to In Progress
+    ↓ [Manual] Create PR → Status: Review
+    ↓ (If changes requested)
+Status: In Progress (Code changes requested)
+    ↓ (After fixes, re-review)
+    ↓ (PR Merged)
+Status: Done (Pull request merged)
+    ↓ (Auto-archive after 2 weeks)
+Archived ✅
+```
 
 **Result**: ✅ Track: https://github.com/CoforgeInsurance/Kanban-XP-DevProcess/issues/1
 

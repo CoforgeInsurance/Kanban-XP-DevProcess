@@ -33,6 +33,7 @@ All templates optimized for GitHub Copilot SWE agent assignment!
 
 ### 📖 Comprehensive Documentation
 - [Development Process Guide](./DEVELOPMENT_PROCESS.md): Complete methodology
+- [Agent-First Process](./AGENT_FIRST_PROCESS.md): ⭐ **Maximize GitHub Copilot SWE Agent**
 - [Contributing Guide](./CONTRIBUTING.md): How to work with this process
 - Pull Request Template: Ensures quality submissions
 
