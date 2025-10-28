@@ -17,7 +17,7 @@ jobs:
     steps:
       - name: Record agent PR opened
         if: github.event.action == 'opened'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const pr = context.payload.pull_request;
@@ -48,7 +48,7 @@ jobs:
 
       - name: Calculate agent success metrics
         if: github.event.action == 'closed' && github.event.pull_request.merged == true
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const pr = context.payload.pull_request;
@@ -85,7 +85,7 @@ jobs:
 
       - name: Record agent PR closed without merge
         if: github.event.action == 'closed' && github.event.pull_request.merged == false
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const pr = context.payload.pull_request;
