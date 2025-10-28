@@ -1,0 +1,215 @@
+name: Auto-Assign Issues to Copilot
+
+on:
+  pull_request:
+    types: [closed]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Manually trigger assignment for specific issue'
+        required: false
+
+jobs:
+  auto-assign-dependencies:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch'
+    
+    permissions:
+      issues: write
+      pull-requests: read
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get merged PR details
+        if: github.event_name == 'pull_request'
+        id: pr_details
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            
+            // Extract issue numbers from PR body (looks for "Fixes #X" or "Closes #X")
+            const issueMatches = pr.body?.match(/(?:Fixes|Closes|Resolves)\s+#(\d+)/gi) || [];
+            const issueNumbers = issueMatches.map(match => {
+              const num = match.match(/\d+/);
+              return num ? parseInt(num[0]) : null;
+            }).filter(n => n !== null);
+            
+            console.log('Completed issues:', issueNumbers);
+            core.setOutput('completed_issues', JSON.stringify(issueNumbers));
+            
+            return issueNumbers;
+
+      - name: Check and assign dependent issues
+        uses: actions/github-script@v7
+        env:
+          COMPLETED_ISSUES: ${{ steps.pr_details.outputs.completed_issues || '[]' }}
+        with:
+          script: |
+            const completedIssues = JSON.parse(process.env.COMPLETED_ISSUES || '[]');
+            
+            // Dependency mapping (issue number -> array of blocker issue numbers)
+            const dependencies = {
+              17: [7],     // Domain Entities blocked by Solution Structure
+              18: [17],    // Domain Interfaces blocked by Domain Entities
+              19: [17],    // Value Objects blocked by Domain Entities
+              20: [17],    // EF Core Configs blocked by Domain Entities
+              21: [20],    // Migrations blocked by EF Core Configs
+              22: [20],    // Repositories blocked by EF Core Configs
+              23: [21, 13, 14],  // Seed Traditions blocked by Migrations + Stoic + Vedanta quotes
+              24: [21, 15],      // Seed Philosophers blocked by Migrations + Bios
+              25: [21, 13, 14],  // Seed Quotes blocked by Migrations + quote data
+              26: [21, 16],      // Seed Timeline blocked by Migrations + timeline data
+              27: [17],    // DTOs blocked by Domain Entities
+              28: [27],    // AutoMapper blocked by DTOs
+              29: [22, 27], // Tradition Service blocked by Repositories + DTOs
+              30: [22, 27], // Philosopher Service blocked by Repositories + DTOs
+              31: [22, 27], // Quote Service blocked by Repositories + DTOs
+              32: [22, 27], // Theme Service blocked by Repositories + DTOs
+              33: [22, 27], // Practice Service blocked by Repositories + DTOs
+              34: [22, 27], // Timeline Service blocked by Repositories + DTOs
+              35: [29],    // Traditions API blocked by Tradition Service
+              36: [30],    // Philosophers API blocked by Philosopher Service
+              37: [31],    // Quotes API blocked by Quote Service
+              38: [32],    // Themes API blocked by Theme Service
+              39: [33],    // Practices API blocked by Practice Service
+              40: [34],    // Timeline API blocked by Timeline Service
+              41: [29, 30, 31], // Search API blocked by core services
+              42: [31],    // Daily Quote API blocked by Quote Service
+            };
+
+            // Issues that are ready to assign (have dependencies defined)
+            const issuesWithDependencies = Object.keys(dependencies).map(Number);
+            
+            console.log('Checking dependencies for issues:', issuesWithDependencies);
+            console.log('Recently completed issues:', completedIssues);
+
+            for (const issueNum of issuesWithDependencies) {
+              const blockers = dependencies[issueNum];
+              
+              // Check if all blockers are in completed list
+              const allBlockersComplete = blockers.every(blocker => 
+                completedIssues.includes(blocker)
+              );
+
+              if (allBlockersComplete) {
+                console.log(`✅ Issue #${issueNum} is ready - all blockers complete`);
+                
+                // Check if issue exists and is not already assigned to Copilot
+                try {
+                  const { data: issue } = await github.rest.issues.get({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issueNum
+                  });
+
+                  const isAssignedToCopilot = issue.assignees?.some(a => 
+                    a.login === 'Copilot' || a.type === 'Bot'
+                  );
+
+                  if (issue.state === 'open' && !isAssignedToCopilot) {
+                    console.log(`🤖 Auto-assigning issue #${issueNum} to GitHub Copilot`);
+                    
+                    // Assign to Copilot
+                    await github.rest.issues.addAssignees({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      issue_number: issueNum,
+                      assignees: ['Copilot']
+                    });
+
+                    // Add comment explaining auto-assignment
+                    await github.rest.issues.createComment({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      issue_number: issueNum,
+                      body: `🤖 **Auto-assigned to GitHub Copilot**\n\nAll dependency blockers have been completed:\n${blockers.map(b => `- Issue #${b} ✅`).join('\n')}\n\nCopilot will now begin working on this issue.`
+                    });
+
+                    console.log(`✅ Successfully assigned issue #${issueNum} to Copilot`);
+                  } else if (isAssignedToCopilot) {
+                    console.log(`ℹ️  Issue #${issueNum} already assigned to Copilot`);
+                  } else if (issue.state === 'closed') {
+                    console.log(`ℹ️  Issue #${issueNum} is already closed`);
+                  }
+                } catch (error) {
+                  console.log(`⚠️  Issue #${issueNum} not found or error: ${error.message}`);
+                }
+              } else {
+                const pendingBlockers = blockers.filter(b => !completedIssues.includes(b));
+                console.log(`⏳ Issue #${issueNum} still waiting on: ${pendingBlockers.join(', ')}`);
+              }
+            }
+
+      - name: Update dependency tracking comment
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        with:
+          script: |
+            // Find or create a tracking issue/comment for dependency status
+            // This helps visualize the dependency chain progress
+            
+            const dependencies = {
+              17: [7], 18: [17], 19: [17], 20: [17], 21: [20], 22: [20],
+              23: [21, 13, 14], 24: [21, 15], 25: [21, 13, 14], 26: [21, 16],
+              27: [17], 28: [27], 29: [22, 27], 30: [22, 27], 31: [22, 27],
+              32: [22, 27], 33: [22, 27], 34: [22, 27], 35: [29], 36: [30],
+              37: [31], 38: [32], 39: [33], 40: [34], 41: [29, 30, 31], 42: [31]
+            };
+
+            // Get all issues to check their status
+            const { data: allIssues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'all',
+              per_page: 100
+            });
+
+            const issueStatusMap = {};
+            allIssues.forEach(issue => {
+              issueStatusMap[issue.number] = issue.state;
+            });
+
+            // Calculate readiness for each dependent issue
+            let statusReport = '## 🤖 Dependency Chain Status\n\n';
+            statusReport += '_Auto-updated on each PR merge_\n\n';
+            
+            const phases = {
+              'Phase 2: Domain Layer': [17, 18, 19],
+              'Phase 3: Data Layer': [20, 21, 22, 23, 24, 25, 26],
+              'Phase 4: Application Layer': [27, 28, 29, 30, 31, 32, 33, 34],
+              'Phase 5: API Layer': [35, 36, 37, 38, 39, 40, 41, 42]
+            };
+
+            for (const [phase, issues] of Object.entries(phases)) {
+              statusReport += `### ${phase}\n\n`;
+              for (const issueNum of issues) {
+                const blockers = dependencies[issueNum] || [];
+                const allComplete = blockers.every(b => issueStatusMap[b] === 'closed');
+                const issueState = issueStatusMap[issueNum];
+                
+                let status = '⏳ Waiting';
+                if (issueState === 'closed') status = '✅ Complete';
+                else if (allComplete) status = '🟢 Ready';
+                
+                statusReport += `- ${status} Issue #${issueNum}`;
+                if (blockers.length > 0) {
+                  statusReport += ` (depends on: ${blockers.map(b => `#${b}`).join(', ')})`;
+                }
+                statusReport += '\n';
+              }
+              statusReport += '\n';
+            }
+
+            console.log('Dependency Status Report:\n', statusReport);
+            
+            // Post summary to PR
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body: statusReport
+            });
