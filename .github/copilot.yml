@@ -1,0 +1,50 @@
+# GitHub Copilot Agent Configuration
+# This file configures network access and behavior for GitHub Copilot agents
+# Reference: https://gh.io/copilot/firewall-config
+
+agent:
+  # Network access configuration to prevent firewall blocking
+  network:
+    allow:
+      # GitHub infrastructure
+      - "*.github.com"
+      - "api.github.com"
+      - "*.githubusercontent.com"
+      - "github.githubassets.com"
+      
+      # AI model endpoints (GitHub's backend services)
+      - "*.openai.azure.com"
+      - "*.azure.com"
+      - "openai.com"
+      
+      # Package managers (if agent needs to install dependencies)
+      - "registry.npmjs.org"
+      - "pypi.org"
+      - "files.pythonhosted.org"
+      
+  # Timeout configuration for long-running tasks
+  timeout:
+    # Default timeout for agent tasks (in seconds)
+    # Increased from default 300s to 600s for content generation
+    default: 600
+    
+    # Specific timeout for content generation tasks
+    content_generation: 900  # 15 minutes for large JSON files
+    
+  # Retry configuration
+  retry:
+    max_attempts: 3
+    backoff_factor: 2  # 2x delay between retries
+    
+  # Resource limits
+  resources:
+    # Maximum response size for API calls (in MB)
+    max_response_size: 10
+    
+    # Memory limit for agent processes
+    memory_limit: "2Gi"
+    
+  # Logging configuration
+  logging:
+    level: "info"  # debug, info, warn, error
+    include_network_errors: true
