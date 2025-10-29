@@ -11,7 +11,8 @@ Create a comprehensive, accessible repository of timeless wisdom that bridges an
 - **Framework**: ASP.NET Core 8.0 Web API
 - **Language**: C# 12
 - **ORM**: Entity Framework Core 8.0
-- **Database**: SQL Server (LocalDB for dev, Azure SQL for production)
+- **Database**: PostgreSQL (local PostgreSQL for dev, Azure Database for PostgreSQL for production)
+- **EF Provider**: Npgsql.EntityFrameworkCore.PostgreSQL
 - **Architecture**: Clean Architecture / Onion Architecture
 - **Testing**: xUnit + SpecFlow (BDD) + FluentAssertions
 - **Caching**: IMemoryCache (dev) / Redis (production)
@@ -466,18 +467,18 @@ Feature: Get quotes from specific tradition
 
 ### Local Development
 ```
-Developer Machine (Windows)
-├── Visual Studio 2022
-├── SQL Server LocalDB (auto-installed with VS)
+Developer Machine (Windows/Mac/Linux)
+├── Visual Studio 2022 or VS Code
+├── PostgreSQL (local instance or Docker container)
 ├── .NET 8.0 SDK
-└── Docker Desktop (optional)
+└── Docker Desktop (optional for containerized PostgreSQL)
 ```
 
 ### Production (Azure)
 ```
 Azure Cloud
 ├── Azure Container Apps (API host)
-├── Azure SQL Database (data storage)
+├── Azure Database for PostgreSQL (data storage)
 ├── Azure Cache for Redis (distributed caching)
 ├── Azure Application Insights (monitoring)
 └── Azure Container Registry (Docker images)

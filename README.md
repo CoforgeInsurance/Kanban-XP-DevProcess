@@ -25,7 +25,7 @@ A production-ready template implementing **Kanban + XP + Lean** methodologies wi
 **Features**:
 - RESTful API providing curated wisdom from 7 philosophical traditions
 - Clean Architecture (Domain/Application/Infrastructure/API layers)
-- Entity Framework Core 8.0 + SQL Server
+- Entity Framework Core 8.0 + PostgreSQL
 - Comprehensive BDD/TDD test suite (xUnit + SpecFlow)
 - Built incrementally using GitHub Copilot SWE Agent
 - Each feature tracked as copilot-ready issues

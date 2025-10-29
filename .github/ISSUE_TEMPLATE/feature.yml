@@ -57,7 +57,7 @@ body:
         - Files to create/modify: src/AncientWisdom.API/Controllers/QuotesController.cs
         - Related code: src/AncientWisdom.Domain/Entities/Quote.cs
         - Test framework: xUnit + FluentAssertions + SpecFlow
-        - Database: Entity Framework Core 8.0 with SQL Server
+        - Database: Entity Framework Core 8.0 with PostgreSQL
         - API: ASP.NET Core 8.0 Minimal API or Controllers
         - Dependencies: AutoMapper, Serilog, FluentValidation
       value: |
